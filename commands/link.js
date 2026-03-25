@@ -57,6 +57,11 @@ module.exports = {
                 {
                     code,
                     discordId: userId
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${process.env.API_KEY}`
+                    }
                 }
             );
 
