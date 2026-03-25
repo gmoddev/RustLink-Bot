@@ -1,3 +1,8 @@
+/* 
+Not_Lowest
+A linking bot that is NOT optimized at all
+*/
+
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 require('dotenv').config();
 
@@ -32,7 +37,7 @@ for (const file of fs.readdirSync('./src/events')) {
 }
 
 // -------------------------
-// 🔥 CORE SYNC FUNCTION
+// Sync Function
 // -------------------------
 async function SyncEntitlements(member) {
     const userId = member.id;
@@ -75,7 +80,7 @@ async function SyncEntitlements(member) {
 }
 
 // -------------------------
-// 🔥 AUTO SYNC ON JOIN
+// Auto Sync
 // -------------------------
 client.on('guildMemberAdd', async (member) => {
     await SyncEntitlements(member);
@@ -94,7 +99,7 @@ client.on('interactionCreate', async interaction => {
 });
 
 // -------------------------
-// Ready (optional debug)
+// Ready
 // -------------------------
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);

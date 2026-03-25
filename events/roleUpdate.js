@@ -14,18 +14,12 @@ module.exports = (client) => {
 
         const entitlements = {};
 
-        // -------------------------
-        // Booster auto-detect
-        // -------------------------
         if (newMember.premiumSince) {
             entitlements["booster"] = true;
         } else {
             entitlements["booster"] = false;
         }
 
-        // -------------------------
-        // Role → Entitlement Mapping
-        // -------------------------
         const mappings = GetAllMappings();
 
         for (const mapping of mappings) {
@@ -40,9 +34,6 @@ module.exports = (client) => {
             }
         }
 
-        // -------------------------
-        // Send update
-        // -------------------------
         try {
             await axios.post(
                 `${process.env.API_BASE}/update-entitlements`,

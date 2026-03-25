@@ -25,9 +25,6 @@ module.exports = {
         const userId = interaction.user.id;
         const now = Date.now();
 
-        // -------------------------
-        // USER COOLDOWN
-        // -------------------------
         if (Cooldowns.has(userId)) {
             const expires = Cooldowns.get(userId);
 
@@ -43,9 +40,6 @@ module.exports = {
         Cooldowns.set(userId, now + CooldownSeconds * 1000);
         setTimeout(() => Cooldowns.delete(userId), CooldownSeconds * 1000);
 
-        // -------------------------
-        // GLOBAL THROTTLE
-        // -------------------------
         if (now - LastGlobalCall < GlobalCooldownMs) {
             return interaction.reply({
                 content: '⚠️ System is busy, try again in a moment.',
@@ -70,9 +64,6 @@ module.exports = {
                 return interaction.reply('❌ Invalid or expired code.');
             }
 
-            // -------------------------
-            // 🔥 SYNC ENTITLEMENTS AFTER LINK
-            // -------------------------
             const member = interaction.member;
             const mappings = GetAllMappings();
             const entitlements = {};

@@ -14,15 +14,12 @@ module.exports = {
         const entitlements = {};
         const mappings = GetAllMappings();
 
-        // Booster
         entitlements["booster"] = !!member.premiumSince;
 
-        // Init all mapped entitlements
         for (const mapping of mappings) {
             entitlements[mapping.Entitlement] = false;
         }
 
-        // Apply roles
         for (const role of member.roles.cache.values()) {
             const match = mappings.find(m => m.RoleId === role.id);
             if (match) {

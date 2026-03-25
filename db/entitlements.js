@@ -1,4 +1,3 @@
-// src/db/entitlements.js
 const db = require('../database');
 
 function SetEntitlement(RoleId, Entitlement) {

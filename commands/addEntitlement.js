@@ -24,7 +24,6 @@ module.exports = {
         const role = interaction.options.getRole('role');
         let entitlement = interaction.options.getString('entitlement');
 
-        // 🔥 normalize (important)
         entitlement = entitlement.toLowerCase().trim();
 
         if (!/^[a-z0-9_]+$/.test(entitlement)) {
