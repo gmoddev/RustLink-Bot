@@ -20,6 +20,29 @@ const client = new Client({
 
 client.commands = new Collection();
 
+const commandsArray = [];
+
+// -------------------------
+// Command Loader
+// Commands live in ./commands/
+// Each file exports: { data, execute }
+// -------------------------
+const commandsDir = path.join(__dirname, 'commands');
+
+if (fs.existsSync(commandsDir)) {
+    for (const file of fs.readdirSync(commandsDir).filter(f => f.endsWith('.js'))) {
+        const cmd = require(path.join(commandsDir, file));
+
+        if (cmd.data && cmd.execute) {
+            client.commands.set(cmd.data.name, cmd);
+            commandsArray.push(cmd.data.toJSON());
+            console.log(`[CMD] Loaded command: ${cmd.data.name} (${file})`);
+        } else {
+            console.warn(`[CMD] Skipped ${file} — missing data or execute export.`);
+        }
+    }
+}
+
 // -------------------------
 // Cog Loader
 // Cogs live in ./cogs/
@@ -29,35 +52,33 @@ client.commands = new Collection();
 //   commands: array of { data, execute }
 //   events:   array of { name, once, execute }
 // -------------------------
-const commandsArray = [];
-
 const cogsDir = path.join(__dirname, 'cogs');
 
-for (const file of fs.readdirSync(cogsDir).filter(f => f.endsWith('.js'))) {
-    const cogPath = path.join(cogsDir, file);
-    const cog = require(cogPath);
+if (fs.existsSync(cogsDir)) {
+    for (const file of fs.readdirSync(cogsDir).filter(f => f.endsWith('.js'))) {
+        const cogPath = path.join(cogsDir, file);
+        const cog = require(cogPath);
 
-    // Register commands
-    if (Array.isArray(cog.commands)) {
-        for (const cmd of cog.commands) {
-            client.commands.set(cmd.data.name, cmd);
-            commandsArray.push(cmd.data.toJSON());
-            console.log(`[COG] Loaded command: ${cmd.data.name} (${file})`);
-        }
-    }
-
-    // Register events
-    if (Array.isArray(cog.events)) {
-        for (const event of cog.events) {
-            const handler = (...args) => event.execute(...args, client);
-
-            if (event.once) {
-                client.once(event.name, handler);
-            } else {
-                client.on(event.name, handler);
+        if (Array.isArray(cog.commands)) {
+            for (const cmd of cog.commands) {
+                client.commands.set(cmd.data.name, cmd);
+                commandsArray.push(cmd.data.toJSON());
+                console.log(`[COG] Loaded command: ${cmd.data.name} (${file})`);
             }
+        }
 
-            console.log(`[COG] Loaded event: ${event.name} (${file})`);
+        if (Array.isArray(cog.events)) {
+            for (const event of cog.events) {
+                const handler = (...args) => event.execute(...args, client);
+
+                if (event.once) {
+                    client.once(event.name, handler);
+                } else {
+                    client.on(event.name, handler);
+                }
+
+                console.log(`[COG] Loaded event: ${event.name} (${file})`);
+            }
         }
     }
 }
@@ -94,7 +115,6 @@ async function SyncEntitlements(member) {
     }
 }
 
-// Expose SyncEntitlements globally so cogs can import it
 client.SyncEntitlements = SyncEntitlements;
 
 // -------------------------
