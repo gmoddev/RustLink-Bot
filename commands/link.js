@@ -66,6 +66,7 @@ module.exports = {
             );
 
             if (!res.data.success) {
+                console.log(res)
                 return interaction.reply('❌ Invalid or expired code.');
             }
 

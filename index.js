@@ -1,12 +1,14 @@
 /*
 Not_Lowest
-A linking bot that is NOT optimized at all
+Discord bot with cog-style module loading
 */
 
 const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
 require('dotenv').config();
 
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 const { GetAllMappings } = require('./db/entitlements');
 
 const client = new Client({
@@ -18,37 +20,57 @@ const client = new Client({
 
 client.commands = new Collection();
 
-const fs = require('fs');
-
 // -------------------------
-// Load commands
+// Cog Loader
+// Cogs live in ./cogs/
+// Each cog exports:
+//   { commands: [], events: [] }
+//
+//   commands: array of { data, execute }
+//   events:   array of { name, once, execute }
 // -------------------------
 const commandsArray = [];
 
-for (const file of fs.readdirSync('./commands')) {
-    const cmd = require(`./commands/${file}`);
-    client.commands.set(cmd.data.name, cmd);
-    commandsArray.push(cmd.data.toJSON());
+const cogsDir = path.join(__dirname, 'cogs');
+
+for (const file of fs.readdirSync(cogsDir).filter(f => f.endsWith('.js'))) {
+    const cogPath = path.join(cogsDir, file);
+    const cog = require(cogPath);
+
+    // Register commands
+    if (Array.isArray(cog.commands)) {
+        for (const cmd of cog.commands) {
+            client.commands.set(cmd.data.name, cmd);
+            commandsArray.push(cmd.data.toJSON());
+            console.log(`[COG] Loaded command: ${cmd.data.name} (${file})`);
+        }
+    }
+
+    // Register events
+    if (Array.isArray(cog.events)) {
+        for (const event of cog.events) {
+            const handler = (...args) => event.execute(...args, client);
+
+            if (event.once) {
+                client.once(event.name, handler);
+            } else {
+                client.on(event.name, handler);
+            }
+
+            console.log(`[COG] Loaded event: ${event.name} (${file})`);
+        }
+    }
 }
 
 // -------------------------
-// Load events
-// -------------------------
-for (const file of fs.readdirSync('./events')) {
-    const event = require(`./events/${file}`);
-    event(client);
-}
-
-// -------------------------
-// Sync Function
+// Sync Function (shared util)
 // -------------------------
 async function SyncEntitlements(member) {
     const userId = member.id;
-
     const entitlements = {};
     const mappings = GetAllMappings();
 
-    entitlements["booster"] = !!member.premiumSince;
+    entitlements['booster'] = !!member.premiumSince;
 
     for (const mapping of mappings) {
         entitlements[mapping.Entitlement] = false;
@@ -64,30 +86,19 @@ async function SyncEntitlements(member) {
     try {
         await axios.post(
             `${process.env.API_BASE}/update-entitlements`,
-            {
-                discordId: userId,
-                entitlements
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.API_KEY}`
-                }
-            }
+            { discordId: userId, entitlements },
+            { headers: { Authorization: `Bearer ${process.env.API_KEY}` } }
         );
     } catch (err) {
         console.error('SyncEntitlements failed:', err?.response?.data || err.message);
     }
 }
 
-// -------------------------
-// Auto Sync
-// -------------------------
-client.on('guildMemberAdd', async (member) => {
-    await SyncEntitlements(member);
-});
+// Expose SyncEntitlements globally so cogs can import it
+client.SyncEntitlements = SyncEntitlements;
 
 // -------------------------
-// Commands
+// Core: Interaction Handler
 // -------------------------
 client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
@@ -95,11 +106,22 @@ client.on('interactionCreate', async interaction => {
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
 
-    await command.execute(interaction, client);
+    try {
+        await command.execute(interaction, client);
+    } catch (err) {
+        console.error(`Command error [${interaction.commandName}]:`, err);
+
+        const msg = { content: '❌ An error occurred.', ephemeral: true };
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp(msg);
+        } else {
+            await interaction.reply(msg);
+        }
+    }
 });
 
 // -------------------------
-// Ready + DEPLOY COMMANDS
+// Core: Ready + Deploy
 // -------------------------
 client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}`);
@@ -107,7 +129,7 @@ client.once('ready', async () => {
     const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
     try {
-        console.log('Deploying slash commands...');
+        console.log(`Deploying ${commandsArray.length} slash command(s)...`);
 
         await rest.put(
             Routes.applicationGuildCommands(
@@ -117,15 +139,7 @@ client.once('ready', async () => {
             { body: commandsArray }
         );
 
-        console.log('Commands deployed instantly (guild).');
-
-        /*
-        await rest.put(
-            Routes.applicationCommands(process.env.CLIENT_ID),
-            { body: commandsArray }
-        );
-        */
-
+        console.log('Commands deployed.');
     } catch (error) {
         console.error('Command deploy failed:', error);
     }
