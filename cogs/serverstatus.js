@@ -145,8 +145,8 @@ function buildComponents() {
             .setLabel('🗺️ Map')
             .setStyle(ButtonStyle.Link)
             .setURL(
-                process.env.RUST_MAP_URL ??
-                `https://rustmaps.com`
+                `https://rustmaps.com/map/${mapSize}_${mapSeed}` ??
+                `https://rustmaps.com/map/3000_5000`
             )
     );
 
