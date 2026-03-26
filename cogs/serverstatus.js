@@ -55,6 +55,7 @@ async function fetchServerStatus() {
     return res.data;   // { success, status, snapshot, mapImage }
 }
 
+
 // ─────────────────────────────────────────────
 // Build the public-facing embed
 // ─────────────────────────────────────────────
@@ -126,8 +127,11 @@ function buildBar(value, max, width) {
 // ─────────────────────────────────────────────
 // Build the action row (Join button)
 // ─────────────────────────────────────────────
-function buildComponents() {
-    const connectUrl = process.env.RUST_CONNECT_URL; // e.g. steam://connect/1.2.3.4:28015
+function buildComponents(data) {
+    const mapSize = data?.snapshot?.map_size ?? 3000;
+    const mapSeed = data?.snapshot?.map_seed ?? 5000;
+
+    const connectUrl = process.env.RUST_CONNECT_URL;
 
     const row = new ActionRowBuilder();
 
@@ -144,15 +148,11 @@ function buildComponents() {
         new ButtonBuilder()
             .setLabel('🗺️ Map')
             .setStyle(ButtonStyle.Link)
-            .setURL(
-                `https://rustmaps.com/map/${mapSize}_${mapSeed}` ??
-                `https://rustmaps.com/map/3000_5000`
-            )
+            .setURL(`https://rustmaps.com/map/${mapSize}_${mapSeed}`)
     );
 
     return row;
 }
-
 // ─────────────────────────────────────────────
 // Core update function — used by both the
 // command (first post) and the polling loop
@@ -213,7 +213,7 @@ const commands = [
             }
 
             const embed = buildStatusEmbed(data);
-            const row   = buildComponents();
+            const row   = buildComponents(data);
 
             const posted = await target.send({ embeds: [embed], components: [row] });
 
