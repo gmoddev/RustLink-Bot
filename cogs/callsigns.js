@@ -24,7 +24,7 @@ db.prepare(`
 // -------------------------
 // CONFIG
 // -------------------------
-const API = `${process.env.API_BASE}/callsigns`;
+const API = `${process.env.API_BASE}/callsign`;
 const HEADERS = {
     Authorization: `Bearer ${process.env.API_KEY}`
 };
